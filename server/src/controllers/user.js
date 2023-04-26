@@ -1,3 +1,4 @@
+const { generateRefreshToken, generateAccessToken } = require("../middlewares/jwt")
 const User = require("../models/user")
 const bcrypt = require("bcrypt")
 
@@ -41,7 +42,9 @@ const login = async (req, res) => {
             })
         // plain object
         const response = await User.findOne({ email })
-        if (response && await response.isCorrectPassword(password)) {
+        if (!response) { throw new Error('Incorrect email or password') }
+        const confirmPassword = await bcrypt.compare(password, response.password)
+        if (confirmPassword) {
             // Tách password và role ra khỏi response
             const { password, role, refreshToken, ...userData } = response.toObject()
             // Tạo access token
@@ -57,6 +60,8 @@ const login = async (req, res) => {
                 accessToken,
                 userData
             })
+        } else {
+            throw new Error('Incorrect email or password')
         }
     } catch (error) {
         res.status(500).json({
